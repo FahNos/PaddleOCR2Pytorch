@@ -1071,8 +1071,14 @@ class PaddingSameAsPaddleMaxPool2d(torch.nn.Module):
 
     def forward(self, x):
         _, _, h, w = x.shape
-        pad_h_total = max(0, (math.ceil(h / self.stride) - 1) * self.stride + self.kernel_size - h)
-        pad_w_total = max(0, (math.ceil(w / self.stride) - 1) * self.stride + self.kernel_size - w)
+
+        if isinstance(h, int):
+            pad_h_total = max(0, (math.ceil(h / self.stride) - 1) * self.stride + self.kernel_size - h)
+            pad_w_total = max(0, (math.ceil(w / self.stride) - 1) * self.stride + self.kernel_size - w)
+        else:
+            pad_h_total = torch.clamp((torch.ceil(h / self.stride) - 1) * self.stride + self.kernel_size - h, min=0)
+            pad_w_total = torch.clamp((torch.ceil(w / self.stride) - 1) * self.stride + self.kernel_size - w, min=0)
+            
         pad_h = pad_h_total // 2
         pad_w = pad_w_total // 2
         x = torch.nn.functional.pad(x, [pad_w, pad_w_total - pad_w, pad_h, pad_h_total - pad_h])
