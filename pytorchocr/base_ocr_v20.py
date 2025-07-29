@@ -73,8 +73,20 @@ class BaseOCRV20:
         self.net.load_state_dict(weights)
         print('weights is loaded.')
 
-    def load_pytorch_weights(self, weights_path):
-        self.net.load_state_dict(torch.load(weights_path))
+    def load_pytorch_weights(self, weights_path):     
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            device = torch.device('mps')
+        else:
+            device = torch.device('cpu')
+    
+        self.net.load_state_dict(
+            torch.load(weights_path, map_location=device), 
+            strict=False
+        )        
+        self.net.to(device)
+        
         print('model is loaded: {}'.format(weights_path))
 
 
