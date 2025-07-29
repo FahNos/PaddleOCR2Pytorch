@@ -264,6 +264,22 @@ class ONNXTextDetector:
         if img is None:
             return None, 0
             
+        h, w = img.shape[1], img.shape[2]
+        resize_h = max(int(round(h / 32) * 32), 32)
+        resize_w = max(int(round(w / 32) * 32), 32)
+
+        if h != resize_h or w != resize_w:
+            # Chuyển về HWC để resize bằng OpenCV
+            img_hwc = img.transpose((1, 2, 0))
+            # Resize
+            img_resized_hwc = cv2.resize(img_hwc, (resize_w, resize_h))
+            # Chuyển lại về CHW
+            img = img_resized_hwc.transpose((2, 0, 1))
+            
+            # Cập nhật lại shape_list
+            shape_list[0][0] = resize_h
+            shape_list[0][1] = resize_w
+            
         img = np.expand_dims(img, axis=0)
         shape_list = np.expand_dims(shape_list, axis=0)
         
@@ -446,7 +462,7 @@ def parse_args():
                        help="Path to ONNX model file (.onnx)")
     parser.add_argument("--image_dir", type=str, required=True,
                        help="Path to input image or directory")
-    parser.add_argument("--draw_img_save_dir", type=str, default="./inference_results",
+    parser.add_argument("--draw_img_save_dir", type=str, default="./inference_results_onnx",
                        help="Directory to save visualization results")
     
     # Model configuration
