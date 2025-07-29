@@ -11,13 +11,14 @@ sys.path.append(os.path.abspath(os.path.join(__dir__, '../..')))
 from tools.infer.predict_det import TextDetector
 import tools.infer.pytorchocr_utility as utility
 
-def main(args):    
+def main(args):   
     print("Initializing TextDetector to load the model...")
     text_detector = TextDetector(args)
     model = text_detector.net
     model.eval()
     print("Model loaded successfully.")
 
+   
     dummy_input = torch.randn(1, 3, args.height, args.width)
     if args.use_gpu:
         dummy_input = dummy_input.cuda()
@@ -25,9 +26,9 @@ def main(args):
     
     print(f"Using dummy input shape: (1, 3, {args.height}, {args.width})")
 
+    # Tạo thư mục lưu trữ nếu chưa tồn tại
     os.makedirs(args.save_dir, exist_ok=True)
     
-    # --- Xuất mô hình ONNX Float32 ---
     try:
         fp32_save_path = os.path.join(args.save_dir, "model_fp32.onnx")
         print(f"\nExporting FP32 model to: {fp32_save_path}")
@@ -49,7 +50,6 @@ def main(args):
     except Exception as e:
         print(f"Error during FP32 export: {e}")
 
-    # --- Xuất mô hình ONNX Float16 ---
     try:
         fp16_save_path = os.path.join(args.save_dir, "model_fp16.onnx")
         print(f"\nConverting model to FP16 and exporting to: {fp16_save_path}")
@@ -75,8 +75,7 @@ def main(args):
         print(f"Error during FP16 export: {e}")
 
 
-def parse_export_args():
-  
+def parse_export_args(): 
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--det_model_path", type=str, required=True, help="Path to the PyTorch detection model (.pth).")
@@ -87,7 +86,7 @@ def parse_export_args():
     parser.add_argument("--width", type=int, default=1280, help="The width of the dummy input for ONNX export.")
 
     parser.add_argument("--use_gpu", type=bool, default=torch.cuda.is_available())
-    parser.add_argument("--det_algorithm", type=str, default='DB')
+    parser.add_argument("--det_algorithm", type=str, default='DB++')
     parser.add_argument("--det_limit_side_len", type=float, default=960)
     parser.add_argument("--det_limit_type", type=str, default='max')
     parser.add_argument("--det_db_thresh", type=float, default=0.3)
