@@ -15,12 +15,7 @@ def print_cmp(inp, name=None):
 class FormulanetRecConverter(BaseOCRV20):
     def __init__(self, config, paddle_pretrained_model_path, **kwargs):
         para_state_dict, opti_state_dict = self.read_paddle_weights(paddle_pretrained_model_path)
-        para_state_dict = self.del_invalid_state_dict(para_state_dict)
-        out_channels = list(para_state_dict.values())[-1].shape[0]
-        print('out_channels: ', out_channels)
-        print(type(kwargs), kwargs)
-        kwargs['out_channels'] = out_channels
-        super(FormulanetRecConverter, self).__init__(config, **kwargs)
+        super(FormulanetRecConverter, self).__init__(config)
         self.load_paddle_weights([para_state_dict, opti_state_dict])
         print('model is loaded: {}'.format(paddle_pretrained_model_path))
         self.net.eval()
@@ -42,27 +37,25 @@ class FormulanetRecConverter(BaseOCRV20):
 
     def load_paddle_weights(self, paddle_weights):
         para_state_dict, opti_state_dict = paddle_weights
-
-        # [print('paddle: {} ---- {}'.format(k, v.shape)) for k, v in para_state_dict.items()]
-        # [print('pytorch: {} ---- {}'.format(k, v.shape)) for k, v in self.net.state_dict().items()]
-        # exit()
-
-        for k,v in para_state_dict.items():
+   
+        for k, v in para_state_dict.items():
             ptname = k
             ptname = ptname.replace('._mean', '.running_mean')
-            ptname = ptname.replace('._variance','.running_var')
+            ptname = ptname.replace('._variance', '.running_var')
 
             try:
-                if k.endswith('fc1.weight') or k.endswith('fc2.weight') \
-                        or k.endswith('fc.weight') or k.endswith('qkv.weight') \
-                        or k.endswith('proj.weight'):
-                    self.net.state_dict()[ptname].copy_(torch.Tensor(v.T.cpu().numpy()))
+                if any(k.endswith(suffix) for suffix in [
+                    'fc1.weight', 'fc2.weight', 'fc.weight', 
+                    'qkv.weight', 'proj.weight', 'lm_head.weight',
+                    'enc_to_dec_proj.weight'
+                ]):
+                    self.net.state_dict()[ptname].copy_(torch.from_numpy(v.numpy()).T)
                 else:
-                    self.net.state_dict()[ptname].copy_(torch.Tensor(v.cpu().numpy()))
+                    self.net.state_dict()[ptname].copy_(torch.from_numpy(v.numpy()))
 
             except Exception as e:
                 print('exception:')
-                print('pytorch: {}, {}'.format(ptname, self.net.state_dict()[k].size()))
+                print('pytorch: {}, {}'.format(ptname, self.net.state_dict()[ptname].size()))
                 print('paddle: {}, {}'.format(k, v.shape))
                 raise e
 
